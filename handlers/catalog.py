@@ -260,10 +260,11 @@ async def show_cart(message: Message):
     
     text = "🛒 **Sizning Savatchangiz:**\n\n"
     for idx, item in enumerate(cart_items, 1):
-        prescription_badge = "⚠️ (Retseptli)" if item['requires_prescription'] else ""
-        branch_badge = f"📍 _{item['branch_name']}_" if item.get('branch_name') else ""
-        text += f"{idx}. **{item['name']}** {branch_badge} {prescription_badge}\n"
-        text += f"   {item['quantity']} шт x {item['price']:,.0f} = **{item['quantity'] * item['price']:,.0f} so'm**\n\n"
+        item_dict = dict(item)
+        prescription_badge = "⚠️ (Retseptli)" if item_dict['requires_prescription'] else ""
+        branch_badge = f"📍 _{item_dict['branch_name']}_" if item_dict.get('branch_name') else ""
+        text += f"{idx}. **{item_dict['name']}** {branch_badge} {prescription_badge}\n"
+        text += f"   {item_dict['quantity']} шт x {item_dict['price']:,.0f} = **{item_dict['quantity'] * item_dict['price']:,.0f} so'm**\n\n"
     
     text += f"💰 **Jami summasi:** **{total:,.0f} so'm**"
     
@@ -282,10 +283,11 @@ async def remove_cart_item(callback: CallbackQuery):
         total = sum(item['price'] * item['quantity'] for item in cart_items)
         text = "🛒 **Sizning Savatchangiz:**\n\n"
         for idx, item in enumerate(cart_items, 1):
-            prescription_badge = "⚠️ (Retseptli)" if item['requires_prescription'] else ""
-            branch_badge = f"📍 _{item['branch_name']}_" if item.get('branch_name') else ""
-            text += f"{idx}. **{item['name']}** {branch_badge} {prescription_badge}\n"
-            text += f"   {item['quantity']} шт x {item['price']:,.0f} = **{item['quantity'] * item['price']:,.0f} so'm**\n\n"
+            item_dict = dict(item)
+            prescription_badge = "⚠️ (Retseptli)" if item_dict['requires_prescription'] else ""
+            branch_badge = f"📍 _{item_dict['branch_name']}_" if item_dict.get('branch_name') else ""
+            text += f"{idx}. **{item_dict['name']}** {branch_badge} {prescription_badge}\n"
+            text += f"   {item_dict['quantity']} шт x {item_dict['price']:,.0f} = **{item_dict['quantity'] * item_dict['price']:,.0f} so'm**\n\n"
         text += f"💰 **Jami summasi:** **{total:,.0f} so'm**"
         await callback.message.edit_text(text, reply_markup=get_cart_keyboard(cart_items), parse_mode="Markdown")
 

@@ -27,17 +27,18 @@ def get_medicine_detail_keyboard(medicine_id: int, category_id: int, branches: l
     
     # Add buttons for each branch with branch-specific price
     for b in branches[:4]:
-        dist_str = f" ({b['distance_km']}km)" if b.get('distance_km') else ""
+        b_dict = dict(b) if hasattr(b, 'keys') else b
+        dist_str = f" ({b_dict['distance_km']}km)" if b_dict.get('distance_km') else ""
         buttons.append([
             InlineKeyboardButton(
-                text=f"🛒 {b['name']}{dist_str} — {b['branch_price']:,.0f} so'm",
-                callback_data=f"addcartb_{medicine_id}_{b['id']}"
+                text=f"🛒 {b_dict['name']}{dist_str} — {b_dict['branch_price']:,.0f} so'm",
+                callback_data=f"addcartb_{medicine_id}_{b_dict['id']}"
             )
         ])
         buttons.append([
             InlineKeyboardButton(
-                text=f"📍 {b['name']} xaritasi (Lokatsiya)",
-                callback_data=f"sendmap_{b['id']}"
+                text=f"📍 {b_dict['name']} xaritasi (Lokatsiya)",
+                callback_data=f"sendmap_{b_dict['id']}"
             )
         ])
 
@@ -48,11 +49,12 @@ def get_medicine_detail_keyboard(medicine_id: int, category_id: int, branches: l
 def get_cart_keyboard(cart_items: list) -> InlineKeyboardMarkup:
     buttons = []
     for item in cart_items:
-        branch_str = f" ({item['branch_name']})" if item.get('branch_name') else ""
+        item_dict = dict(item) if hasattr(item, 'keys') else item
+        branch_str = f" ({item_dict['branch_name']})" if item_dict.get('branch_name') else ""
         buttons.append([
             InlineKeyboardButton(
-                text=f"❌ {item['name']}{branch_str} ({item['quantity']} шт)",
-                callback_data=f"removecart_{item['cart_id']}"
+                text=f"❌ {item_dict['name']}{branch_str} ({item_dict['quantity']} шт)",
+                callback_data=f"removecart_{item_dict['cart_id']}"
             )
         ])
     
