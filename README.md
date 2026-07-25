@@ -98,9 +98,9 @@ pip install -r requirements.txt
 Papka ichida `.env` faylini yarating va quyidagi kalitlarni kiriting:
 
 ```env
-BOT_TOKEN=746670078:AAE9XHA3vbM3hZ7VEHqOhbFu9bYPyaZdVqs
-ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxx
-ADMIN_IDS=480063513
+BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
+ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY_HERE
+ADMIN_IDS=YOUR_ADMIN_TELEGRAM_ID_HERE
 ```
 
 ### 4. Botni ishga tushirish:
