@@ -151,11 +151,14 @@ async def search_medicines(query: str):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         q_raw = query.strip()
+        if not q_raw:
+            return []
+
         q_lat = cyrillic_to_latin(q_raw)
         q_norm = normalize_query(q_raw)
 
+        # 1. Direct query match
         patterns = [f"%{q_raw}%", f"%{q_lat}%", f"%{q_norm}%"]
-        
         sql = """
             SELECT DISTINCT * FROM medicines 
             WHERE 
@@ -169,7 +172,32 @@ async def search_medicines(query: str):
             params.extend([p, p, p, p, p])
 
         async with db.execute(sql, params) as cursor:
-            return await cursor.fetchall()
+            results = await cursor.fetchall()
+            if results:
+                return results
+
+        # 2. Multi-word token fallback search (e.g. "levomekol maz" -> search "levomekol")
+        words = q_raw.split()
+        noise_words = {"maz", "мазь", "tabletka", "таблетка", "kapsula", "капсула", "gel", "гель", "dori", "дори", "sirop", "сироп", "sachet", "саше", "tomchi", "капли"}
+        meaningful_words = [w for w in words if w.lower() not in noise_words and len(w) >= 3]
+
+        if not meaningful_words:
+            meaningful_words = words
+
+        for word in meaningful_words:
+            w_lat = cyrillic_to_latin(word)
+            w_norm = normalize_query(word)
+            w_patterns = [f"%{word}%", f"%{w_lat}%", f"%{w_norm}%"]
+            w_params = []
+            for p in w_patterns:
+                w_params.extend([p, p, p, p, p])
+
+            async with db.execute(sql, w_params) as cursor:
+                w_results = await cursor.fetchall()
+                if w_results:
+                    return w_results
+
+        return []
 
 async def get_medicine(medicine_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
