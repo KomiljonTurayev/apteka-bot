@@ -27,10 +27,41 @@ async def execute_medicine_search(message: Message, query: str):
         ai_reply = await get_pharmacy_consultation(f"Mijoz '{query}' nomli dorini izlamoqda. Ushbu dori haqida (ta'sir etuvchi moddasi, nimaga qo'llanilishi) qisqacha ma'lumot bering va uning o'rnini bosuvchi analog dorilarni ayting.")
         await processing_msg.delete()
         
-        text = f"🔍 Bazada **'{query}'** bo'yicha aniq moslik topilmadi.\n\n🤖 **AI Farmatsevt Maslahati:**\n{ai_reply}"
-        await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id), parse_mode="Markdown")
+        text = f"🔍 Bazada '{query}' bo'yicha aniq moslik topilmadi.\n\n🤖 AI Farmatsevt Maslahati:\n{ai_reply}"
+        try:
+            await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id), parse_mode="Markdown")
+        except Exception:
+            await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id))
     else:
-        await message.answer(f"🔍 **'{query}'** bo'yicha topilgan dorilar:", reply_markup=get_medicines_keyboard(medicines))
+        user_id = message.from_user.id
+        db_user = await get_user(user_id)
+        db_user_dict = dict(db_user) if db_user else {}
+        u_lat = db_user_dict.get('latitude')
+        u_lon = db_user_dict.get('longitude')
+
+        text = f"🔍 **'{query}' bo'yicha topilgan dorilar va aptekalar narxlari:**\n\n"
+        
+        for m in medicines[:3]:
+            branches = await get_medicine_branches_info(m['id'], u_lat, u_lon)
+            manuf_str = f"🏭 **Ishlab chiqarilgan joyi:** {m['manufacturer']} ({m['country']})\n" if m.get('manufacturer') else ""
+            presc_str = "⚠️ Retseptli dori" if m['requires_prescription'] else "🟢 Retsept talab qilinmaydi"
+            
+            text += f"💊 **{m['name']}**\n"
+            text += f"🧪 Ta'sir etuvchi modda: {m['active_substance']}\n"
+            text += manuf_str
+            text += f"💵 O'rtacha narxi: **{m['price']:,.0f} so'm** ({presc_str})\n"
+            text += f"🏢 **Mavjud Aptekalar va Narxlar:**\n"
+            
+            for b in branches[:4]:
+                dist_str = f" ({b['distance_km']} km)" if b.get('distance_km') else ""
+                text += f"  • {b['name']}{dist_str} — **{b['branch_price']:,.0f} so'm** (📦 {b['branch_stock']} шт)\n"
+                text += f"    📍 {b['address']}\n"
+            text += "\n"
+
+        try:
+            await message.answer(text, reply_markup=get_medicines_keyboard(medicines), parse_mode="Markdown")
+        except Exception:
+            await message.answer(text, reply_markup=get_medicines_keyboard(medicines))
 
 @router.message(SearchState.waiting_for_search_query, F.text & (F.text != "❌ Bekor qilish"))
 async def process_search_state(message: Message, state: FSMContext):
