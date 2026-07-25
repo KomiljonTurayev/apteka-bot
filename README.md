@@ -132,7 +132,18 @@ python main.py
    sudo systemctl status apteka-bot
    ```
 
-### Variant B: Docker & Docker Compose
+### Variant B: Render.com (Cloud 24/7 Hosting) — Bepul Cloud
+1. [dashboard.render.com](https://dashboard.render.com) ga kiring.
+2. **`New +`** -> **`Background Worker`** (yoki **`Blueprint`**) ni tanlang.
+3. GitHub omboringizni (`KomiljonTurayev/apteka-bot`) ulashing.
+4. Render sozlamalari:
+   - **Environment:** `Python 3`
+   - **Build Command:** `pip install -r requirements.txt && python seed_db.py`
+   - **Start Command:** `python main.py`
+5. **Environment Variables** bo'limiga `.env` dagi kalitlaringizni kiriting (`BOT_TOKEN`, `ANTHROPIC_API_KEY`, `ADMIN_IDS`).
+6. **`Create Background Worker`** tugmasini bosing — bot Render.com da 24/7 ishlaydi!
+
+### Variant C: Docker & Docker Compose
 ```bash
 docker-compose up -d --build
 ```
