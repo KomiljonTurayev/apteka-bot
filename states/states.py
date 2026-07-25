@@ -20,3 +20,4 @@ class AdminState(StatesGroup):
     waiting_for_med_price = State()
     waiting_for_med_stock = State()
     waiting_for_med_prescription = State()
+    waiting_for_broadcast_text = State()

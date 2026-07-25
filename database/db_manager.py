@@ -338,3 +338,27 @@ async def get_nearest_branches(user_lat: float, user_lon: float):
     
     branch_list.sort(key=lambda x: x['distance_km'])
     return branch_list
+
+async def get_all_users():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM users") as cursor:
+            return await cursor.fetchall()
+
+async def get_bot_stats():
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT COUNT(*) FROM users") as c1:
+            total_users = (await c1.fetchone())[0]
+        async with db.execute("SELECT COUNT(*) FROM medicines") as c2:
+            total_medicines = (await c2.fetchone())[0]
+        async with db.execute("SELECT COUNT(*) FROM orders") as c3:
+            total_orders = (await c3.fetchone())[0]
+        async with db.execute("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status = '🎉 Yakunlandi (Yetkazildi)' OR status = 'Completed'") as c4:
+            total_revenue = (await c4.fetchone())[0]
+            
+        return {
+            'total_users': total_users,
+            'total_medicines': total_medicines,
+            'total_orders': total_orders,
+            'total_revenue': total_revenue
+        }

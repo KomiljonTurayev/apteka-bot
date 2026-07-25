@@ -8,6 +8,8 @@ from states.states import AdminState
 from keyboards.reply import get_cancel_keyboard, get_main_keyboard
 from keyboards.inline import get_categories_keyboard
 
+from database.db_manager import update_order_status, get_order, get_all_categories, add_medicine, get_bot_stats, get_all_users
+
 router = Router()
 
 def is_admin(user_id: int) -> bool:
@@ -21,11 +23,56 @@ async def admin_panel(message: Message):
 
     text = """👨‍💼 **Apteka Admin Paneli**
 
-Bot va dori-darmonlar bazasini boshqarishingiz mumkin.
+Bot va dori-darmonlar bazasini boshqarishingiz mumkin:
 
-- Dori qo'shish uchun /addmedicine buyrug'ini yuboring.
-- Yangi kelgan buyurtmalar avtomatik tariqda shu chatga inline tugmalar bilan tushadi."""
+- `/stats` — Bot statistikasi (Foydalanuvchilar va buyurtmalar soni).
+- `/addmedicine` — Katalogga yangi dori qo'shish.
+- `/broadcast` — Barcha mijozlarga ommaviy xabar yuborish.
+
+*Yangi buyurtmalar avtomatik ravishda ushbu chatga inline tugmalar bilan tushadi.*"""
     await message.answer(text, parse_mode="Markdown")
+
+@router.message(F.text == "/stats")
+async def show_stats(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+
+    stats = await get_bot_stats()
+    text = f"""📊 **Apteka Bot Statistikasi:**
+
+👥 **Jami mijozlar soni:** {stats['total_users']} ta
+💊 **Katalogdagi dorilar:** {stats['total_medicines']} ta
+📦 **Jami buyurtmalar:** {stats['total_orders']} ta
+💰 **Yakunlangan tushum:** {stats['total_revenue']:,.0f} so'm"""
+    await message.answer(text, parse_mode="Markdown")
+
+@router.message(F.text == "/broadcast")
+async def start_broadcast(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+
+    await state.set_state(AdminState.waiting_for_broadcast_text)
+    await message.answer("📢 **Ommaviy Xabar Yuborish**\n\nBarcha mijozlarga yubormoqchi bo'lgan xabaringiz matnini kiriting:", reply_markup=get_cancel_keyboard(), parse_mode="Markdown")
+
+@router.message(AdminState.waiting_for_broadcast_text, F.text & (F.text != "❌ Bekor qilish"))
+async def process_broadcast(message: Message, state: FSMContext, bot: Bot):
+    broadcast_text = message.text
+    users = await get_all_users()
+    
+    status_msg = await message.answer(f"⏳ {len(users)} ta foydalanuvchiga xabar yuborilmoqda...")
+    
+    success = 0
+    failed = 0
+    for u in users:
+        try:
+            await bot.send_message(u['telegram_id'], broadcast_text, parse_mode="Markdown")
+            success += 1
+        except Exception:
+            failed += 1
+
+    await state.clear()
+    await status_msg.delete()
+    await message.answer(f"📢 **Ommaviy xabar yakunlandi!**\n\n✅ Yuborildi: {success} ta\n❌ Xatolik (Bloklaganlar): {failed} ta", reply_markup=get_main_keyboard(message.from_user.id), parse_mode="Markdown")
 
 @router.callback_query(F.data.startswith("status_"))
 async def change_status(callback: CallbackQuery, bot: Bot):
