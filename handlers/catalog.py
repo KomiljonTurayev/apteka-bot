@@ -42,14 +42,15 @@ async def execute_medicine_search(message: Message, query: str):
         text = f"🔍 **'{query}' bo'yicha topilgan dorilar va aptekalar narxlari:**\n\n"
         
         for m in medicines[:3]:
-            branches = await get_medicine_branches_info(m['id'], u_lat, u_lon)
-            manuf_str = f"🏭 **Ishlab chiqarilgan joyi:** {m['manufacturer']} ({m['country']})\n" if m.get('manufacturer') else ""
-            presc_str = "⚠️ Retseptli dori" if m['requires_prescription'] else "🟢 Retsept talab qilinmaydi"
+            m_dict = dict(m)
+            branches = await get_medicine_branches_info(m_dict['id'], u_lat, u_lon)
+            manuf_str = f"🏭 **Ishlab chiqarilgan joyi:** {m_dict['manufacturer']} ({m_dict['country']})\n" if m_dict.get('manufacturer') else ""
+            presc_str = "⚠️ Retseptli dori" if m_dict.get('requires_prescription') else "🟢 Retsept talab qilinmaydi"
             
-            text += f"💊 **{m['name']}**\n"
-            text += f"🧪 Ta'sir etuvchi modda: {m['active_substance']}\n"
+            text += f"💊 **{m_dict['name']}**\n"
+            text += f"🧪 Ta'sir etuvchi modda: {m_dict['active_substance']}\n"
             text += manuf_str
-            text += f"💵 O'rtacha narxi: **{m['price']:,.0f} so'm** ({presc_str})\n"
+            text += f"💵 O'rtacha narxi: **{m_dict['price']:,.0f} so'm** ({presc_str})\n"
             text += f"🏢 **Mavjud Aptekalar va Narxlar:**\n"
             
             for b in branches[:4]:
