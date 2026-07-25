@@ -110,6 +110,35 @@ python main.py
 
 ---
 
+## ☁️ Serverga Joylashtirish (Server Deployment 24/7)
+
+### Variant A: Systemd (Ubuntu / Linux VPS) — Tavsiya Etiladi
+1. Serveringizga ulaning va proyektni ko'chiring:
+   ```bash
+   cd /var/www
+   git clone https://github.com/KomiljonTurayev/apteka-bot.git
+   cd apteka-bot
+   ```
+2. `.env` faylini yaratib, kalitlaringizni kiriting.
+3. Systemd servisini o'rnating:
+   ```bash
+   sudo cp apteka-bot.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable apteka-bot
+   sudo systemctl start apteka-bot
+   ```
+4. Holatni tekshirish:
+   ```bash
+   sudo systemctl status apteka-bot
+   ```
+
+### Variant B: Docker & Docker Compose
+```bash
+docker-compose up -d --build
+```
+
+---
+
 ## 👨‍💻 Muallif va Litsenziya
 
 - **Dasturchi:** Komiljon Turayev

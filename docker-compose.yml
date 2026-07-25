@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  apteka-bot:
+    build: .
+    container_name: apteka_ai_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./pharmacy.db:/app/pharmacy.db

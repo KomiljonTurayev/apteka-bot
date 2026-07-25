@@ -1,0 +1,15 @@
+[Unit]
+Description=Apteka AI Telegram Bot Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/apteka-bot
+ExecStart=/var/www/apteka-bot/.venv/bin/python main.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/var/www/apteka-bot/.env
+
+[Install]
+WantedBy=multi-user.target
