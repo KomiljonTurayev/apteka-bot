@@ -10,4 +10,8 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 admin_ids_raw = os.getenv("ADMIN_IDS", "")
 ADMIN_IDS = [int(i.strip()) for i in admin_ids_raw.split(",") if i.strip().isdigit()]
 
+# GitHub Credentials
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_REPO_URL = os.getenv("GITHUB_REPO_URL", "")
+
 DB_PATH = "pharmacy.db"
