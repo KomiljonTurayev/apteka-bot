@@ -37,61 +37,68 @@ async def init_db():
             if 'longitude' not in user_cols:
                 await db.execute("ALTER TABLE users ADD COLUMN longitude REAL")
 
+        # Check and migrate missing columns in cart table
+        async with db.execute("PRAGMA table_info(cart)") as cursor:
+            cart_cols = [row[1] for row in await cursor.fetchall()]
+            if 'branch_id' not in cart_cols:
+                await db.execute("ALTER TABLE cart ADD COLUMN branch_id INTEGER")
+
         await db.commit()
 
-        # Seed categories if empty
-        async with db.execute("SELECT COUNT(*) FROM categories") as cursor:
-            count = (await cursor.fetchone())[0]
-            if count == 0:
-                await db.executemany(
-                    "INSERT INTO categories (name, description) VALUES (?, ?)",
-                    DEFAULT_CATEGORIES
-                )
-                await db.commit()
+        # Seed categories
+        for cat_name, cat_desc in DEFAULT_CATEGORIES:
+            async with db.execute("SELECT id FROM categories WHERE name = ?", (cat_name,)) as cursor:
+                row = await cursor.fetchone()
+                if not row:
+                    await db.execute("INSERT INTO categories (name, description) VALUES (?, ?)", (cat_name, cat_desc))
+        await db.commit()
 
-        # Upsert default medicines
+        # Seed medicines
         for med in DEFAULT_MEDICINES:
-            async with db.execute("SELECT COUNT(*) FROM medicines WHERE name = ?", (med[1],)) as cursor:
-                exists = (await cursor.fetchone())[0] > 0
-                if not exists:
-                    await db.execute("""
-                        INSERT INTO medicines (category_id, name, description, active_substance, price, manufacturer, country, stock, requires_prescription)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, med)
+            cat_id, name, desc, active, price, manufacturer, country, stock, prescription = med
+            async with db.execute("SELECT id FROM medicines WHERE name = ?", (name,)) as cursor:
+                row = await cursor.fetchone()
+                if not row:
+                    await db.execute(
+                        "INSERT INTO medicines (category_id, name, description, active_substance, price, manufacturer, country, stock, requires_prescription) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (cat_id, name, desc, active, price, manufacturer, country, stock, prescription)
+                    )
         await db.commit()
 
-        # Seed branches if empty
-        async with db.execute("SELECT COUNT(*) FROM pharmacy_branches") as cursor:
-            count = (await cursor.fetchone())[0]
-            if count == 0:
-                await db.executemany(
-                    "INSERT INTO pharmacy_branches (name, address, phone, work_hours, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?)",
-                    DEFAULT_BRANCHES
-                )
-                await db.commit()
+        # Seed branches
+        for b_name, b_addr, b_phone, b_hours, b_lat, b_lon in DEFAULT_BRANCHES:
+            async with db.execute("SELECT id FROM pharmacy_branches WHERE name = ?", (b_name,)) as cursor:
+                row = await cursor.fetchone()
+                if not row:
+                    await db.execute(
+                        "INSERT INTO pharmacy_branches (name, address, phone, work_hours, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?)",
+                        (b_name, b_addr, b_phone, b_hours, b_lat, b_lon)
+                    )
+        await db.commit()
 
-        # Seed branch_medicines for realistic price variations per branch
-        async with db.execute("SELECT COUNT(*) FROM branch_medicines") as cursor:
-            count = (await cursor.fetchone())[0]
-            if count == 0:
-                branches = await get_all_branches()
-                medicines = await get_all_medicines()
-                branch_meds = []
-                for b in branches:
-                    for idx, m in enumerate(medicines):
-                        # Slight variation in price across branches (-5% to +10%)
-                        price_multiplier = 1.0 + ((b['id'] * 3 + idx * 7) % 15 - 5) / 100.0
-                        branch_price = round(m['price'] * price_multiplier, -2)
-                        stock = 30 + (b['id'] * 10 + idx * 5) % 70
-                        branch_meds.append((b['id'], m['id'], branch_price, stock))
-                
-                await db.executemany("""
-                    INSERT INTO branch_medicines (branch_id, medicine_id, price, stock)
-                    VALUES (?, ?, ?, ?)
-                """, branch_meds)
-                await db.commit()
+        # Seed branch_medicines
+        async with db.execute("SELECT id FROM pharmacy_branches") as b_cursor:
+            branches = [r[0] for r in await b_cursor.fetchall()]
+        async with db.execute("SELECT id, price FROM medicines") as m_cursor:
+            meds = await m_cursor.fetchall()
 
-    logger.info("Database initialized successfully.")
+        import random
+        for b_id in branches:
+            for m_id, base_price in meds:
+                async with db.execute("SELECT id FROM branch_medicines WHERE branch_id = ? AND medicine_id = ?", (b_id, m_id)) as cursor:
+                    if not await cursor.fetchone():
+                        variation = (b_id * 3 + m_id * 5) % 15 - 5
+                        branch_price = round(base_price * (1 + variation / 100.0), -2)
+                        if branch_price < 1000:
+                            branch_price = base_price
+                        stock = 20 + (b_id * 7 + m_id * 3) % 60
+                        await db.execute(
+                            "INSERT INTO branch_medicines (branch_id, medicine_id, price, stock) VALUES (?, ?, ?, ?)",
+                            (b_id, m_id, branch_price, stock)
+                        )
+        await db.commit()
+
+    logger.info("Database initialized with rich medicine dataset.")
 
 # --- USER OPS ---
 async def add_or_update_user(telegram_id: int, full_name: str, phone_number: str = None, latitude: float = None, longitude: float = None):
