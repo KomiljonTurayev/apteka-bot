@@ -280,12 +280,27 @@ async def get_user_favorites(user_id: int):
 # --- CART OPS ---
 async def add_to_cart(user_id: int, medicine_id: int, quantity: int = 1, branch_id: int = None):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-            INSERT INTO cart (user_id, medicine_id, branch_id, quantity)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(user_id, medicine_id, branch_id) DO UPDATE SET
-            quantity = quantity + excluded.quantity
-        """, (user_id, medicine_id, branch_id, quantity))
+        if branch_id is not None:
+            async with db.execute(
+                "SELECT id, quantity FROM cart WHERE user_id = ? AND medicine_id = ? AND branch_id = ?",
+                (user_id, medicine_id, branch_id)
+            ) as cursor:
+                row = await cursor.fetchone()
+        else:
+            async with db.execute(
+                "SELECT id, quantity FROM cart WHERE user_id = ? AND medicine_id = ? AND (branch_id IS NULL OR branch_id = 0)",
+                (user_id, medicine_id)
+            ) as cursor:
+                row = await cursor.fetchone()
+
+        if row:
+            cart_id, current_qty = row[0], row[1]
+            await db.execute("UPDATE cart SET quantity = ? WHERE id = ?", (current_qty + quantity, cart_id))
+        else:
+            await db.execute(
+                "INSERT INTO cart (user_id, medicine_id, branch_id, quantity) VALUES (?, ?, ?, ?)",
+                (user_id, medicine_id, branch_id, quantity)
+            )
         await db.commit()
 
 async def get_user_cart(user_id: int):
