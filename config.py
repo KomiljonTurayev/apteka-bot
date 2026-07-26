@@ -14,4 +14,6 @@ ADMIN_IDS = [int(i.strip()) for i in admin_ids_raw.split(",") if i.strip().isdig
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 GITHUB_REPO_URL = os.getenv("GITHUB_REPO_URL", "")
 
+# PostgreSQL & SQLite Database Connection
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = "pharmacy.db"
