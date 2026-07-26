@@ -31,7 +31,8 @@ async def main():
     # Initialize SQLite DB
     await init_db()
 
-    bot = Bot(token=BOT_TOKEN)
+    clean_token = BOT_TOKEN.strip().strip('"').strip("'")
+    bot = Bot(token=clean_token)
     dp = Dispatcher()
 
     # Include routers in order
