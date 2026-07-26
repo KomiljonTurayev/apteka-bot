@@ -25,8 +25,8 @@ def get_medicine_detail_keyboard(medicine_id: int, category_id: int, branches: l
     
     buttons = []
     
-    # Add buttons for each branch with branch-specific price
-    for b in branches[:4]:
+    # Add buttons for each branch with branch-specific price and location button
+    for b in branches[:8]:
         b_dict = dict(b) if hasattr(b, 'keys') else b
         dist_str = f" ({b_dict['distance_km']}km)" if b_dict.get('distance_km') else ""
         buttons.append([
