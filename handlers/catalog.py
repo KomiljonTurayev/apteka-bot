@@ -109,15 +109,33 @@ async def process_location(message: Message):
     await add_or_update_user(user_id, message.from_user.full_name, latitude=user_lat, longitude=user_lon)
 
     nearest_branches = await get_nearest_branches(user_lat, user_lon)
-    
-    text = "📍 **Sizga Eng Yaqin Apteka Filiallari:**\n\n"
+    if not nearest_branches:
+        await message.answer("Filiallar topilmadi.", reply_markup=get_main_keyboard(user_id))
+        return
+
+    # Automatically send native Telegram location map for the closest branch
+    top_branch = nearest_branches[0]
+    await message.answer_location(latitude=top_branch['latitude'], longitude=top_branch['longitude'])
+
+    text = f"📍 **Sizga Eng Yaqin Apteka Filiallari (Boringiz:** `{top_branch['distance_km']} km`):\n\n"
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    buttons = []
+
     for b in nearest_branches[:5]:
         text += f"🏢 **{b['name']}** — `{b['distance_km']} km` uzoqlikda\n"
         text += f"📍 Manzil: {b['address']}\n"
         text += f"📞 Telefon: {b['phone']}\n"
         text += f"⏰ Ish vaqti: {b['work_hours']}\n\n"
 
-    await message.answer(text, reply_markup=get_main_keyboard(user_id), parse_mode="Markdown")
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"📍 {b['name']} ({b['distance_km']}km) Xaritasi",
+                callback_data=f"sendmap_{b['id']}"
+            )
+        ])
+
+    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons), parse_mode="Markdown")
+    await message.answer("✅ Joylashuvingiz saqlandi! Endi barcha dori izlash natijalari va narxlar sizgacha bo'lgan masofa (`km`) bo'yicha ko'rsatiladi.", reply_markup=get_main_keyboard(user_id), parse_mode="Markdown")
 
 @router.message(F.text == "⭐ Sevimlilar")
 async def show_favorites(message: Message):
